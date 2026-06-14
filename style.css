@@ -16,10 +16,10 @@ body {
     margin: 0 auto;
 }
 
-/* KAFELKI */
+/* KAFELKI PULPITU */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Mniejsze kafelki idealne na telefon */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 15px;
     padding: 10px 0;
 }
@@ -50,7 +50,7 @@ body {
 .tile-icon { font-size: 32px; margin-bottom: 8px; }
 .tile-title { font-size: 14px; font-weight: 600; }
 
-/* CZERWONA KROPKA */
+/* POWIADOMIENIE (CZERWONA KROPKA) */
 .badge {
     position: absolute;
     top: 10px;
@@ -67,7 +67,7 @@ body {
     justify-content: center;
 }
 
-/* GRUPA INPUT + PRZYCISK SKANOWANIA */
+/* GRUPA PRZYCISK SKANOWANIA + PODGLĄD KODU */
 .scan-input-group {
     display: flex;
     gap: 8px;
@@ -85,10 +85,10 @@ body {
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
-    height: 41px; /* Równe z inputem */
+    height: 41px;
 }
 
-/* WYSKAKUJĄCE OKNO APARATU (MODAL) */
+/* MODAL APARATU */
 .modal {
     display: none;
     position: fixed;
@@ -116,7 +116,7 @@ body {
     overflow: hidden;
 }
 
-/* ZAKŁADKI */
+/* ZAKŁADKI I SEKCIJE */
 .tab-content {
     display: none;
     background: white;
@@ -136,11 +136,11 @@ body {
     font-size: 14px;
 }
 
-h2 { margin-bottom: 15px; font-size: 20px; color: #2c3e50; border-bottom: 2px solid #feed; padding-bottom: 5px; }
+h2 { margin-bottom: 15px; font-size: 20px; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; }
 .card { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
 form label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 14px; }
 form input, form select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
-.submit-btn { background-color: #2ecc71; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; }
+.submit-btn { color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; }
 
 /* TABELA */
 table { width: 100%; border-collapse: collapse; min-width: 500px; }
