@@ -1,6 +1,6 @@
 let stock = JSON.parse(localStorage.getItem('magazyn_stock')) || [];
 let orders = JSON.parse(localStorage.getItem('magazyn_orders')) || [];
-let html5QrcodeScanner = null; // Zmienna trzymająca instancję aparatu
+let html5QrcodeScanner = null;
 
 function saveToStorage() {
     localStorage.setItem('magazyn_stock', JSON.stringify(stock));
@@ -8,12 +8,10 @@ function saveToStorage() {
     updateBadge();
 }
 
-// LOGIKA APARATU / SKANERA
+// OBSŁUGA APARATU (Z POPRAWKĄ ZAMYKANIA)
 function startScanning(targetInputId, targetNameId) {
-    // Pokazuje wyskakujące okno z kamerą
     document.getElementById('scanner-modal').style.display = 'flex';
     
-    // Tworzymy instancję tylko jeśli nie została stworzona wcześniej
     if (!html5QrcodeScanner) {
         html5QrcodeScanner = new Html5Qrcode("reader");
     }
@@ -31,44 +29,26 @@ function startScanning(targetInputId, targetNameId) {
             if (navigator.vibrate) navigator.vibrate(100);
             stopScanning();
         },
-        (errorMessage) => {
-            // ignorujemy błędy szukania kodu w klatce obrazu
-        }
+        (errorMessage) => {}
     ).catch(err => {
         console.error("Nie udało się uruchomić kamery:", err);
-        alert("Błąd kamery! Aplikacja nie ma uprawnień lub nie używasz bezpiecznego połączenia HTTPS.");
+        alert("Błąd kamery! Brak uprawnień lub brak bezpiecznego połączenia HTTPS.");
     });
 }
 
 function stopScanning() {
-    // ZASADA BEZPIECZEŃSTWA: Najpierw bezwzględnie zamykamy okno w UI, 
-    // żeby użytkownik nie został zablokowany na czarnym ekranie.
     document.getElementById('scanner-modal').style.display = 'none';
 
     if (html5QrcodeScanner) {
-        // Próbujemy bezpiecznie wyłączyć strumień wideo, jeśli wystartował
         html5QrcodeScanner.stop().then(() => {
             console.log("Strumień kamery wyłączony.");
         }).catch(err => {
-            // Jeśli kamera w ogóle nie ruszyła, stop() zwróci błąd, który tutaj po prostu ignorujemy
-            console.log("Kamera nie była aktywna, zamknięto samo okno.");
+            console.log("Kamera nie była aktywna, zamknięto samo okno UI.");
         });
     }
 }
 
-function stopScanning() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => {
-            document.getElementById('scanner-modal').style.display = 'none';
-        }).catch(err => {
-            document.getElementById('scanner-modal').style.display = 'none';
-        });
-    } else {
-        document.getElementById('scanner-modal').style.display = 'none';
-    }
-}
-
-// RESTA LOGIKI APLIKACJI
+// NAWIGACJA
 function switchTab(tabId) {
     document.getElementById('dashboard').style.display = 'none';
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
@@ -107,31 +87,51 @@ function updateBadge() {
     }
 }
 
-function handleOperation(e) {
+// 1. OBSŁUGA PRIZYJĘCIA TOWARU
+function handleIncoming(e) {
     e.preventDefault();
-    const code = document.getElementById('op-code').value.trim();
-    const name = document.getElementById('op-name').value.trim();
-    const wh = document.getElementById('op-wh').value.trim();
-    const qty = parseInt(document.getElementById('op-qty').value);
-    const type = document.getElementById('op-type').value;
+    const code = document.getElementById('in-code').value.trim();
+    const name = document.getElementById('in-name').value.trim();
+    const wh = document.getElementById('in-wh').value.trim();
+    const qty = parseInt(document.getElementById('in-qty').value);
 
     let item = stock.find(i => i.code === code && i.wh.toLowerCase() === wh.toLowerCase());
 
-    if (type === 'in') {
-        if (item) { item.qty += qty; } 
-        else { stock.push({ code, name, wh, qty, flagged: false }); }
-        alert(`Przyjęto: ${name} (${qty} szt.)`);
-    } else {
-        if (!item || item.qty < qty) { alert('Błąd: Brak towaru!'); return; }
-        item.qty -= qty;
-        alert(`Pobrano: ${name} (${qty} szt.)`);
+    if (item) { 
+        item.qty += qty; 
+    } else { 
+        stock.push({ code, name, wh, qty, flagged: false }); 
     }
 
-    document.getElementById('form-operacja').reset();
+    alert(`Przyjęto: ${name} (+${qty} szt.) na magazyn ${wh}`);
+    document.getElementById('form-przyjecie').reset();
     saveToStorage();
     showDashboard();
 }
 
+// 2. OBSŁUGA POBRANIA TOWARU
+function handleOutgoing(e) {
+    e.preventDefault();
+    const code = document.getElementById('out-code').value.trim();
+    const name = document.getElementById('out-name').value.trim();
+    const wh = document.getElementById('out-wh').value.trim();
+    const qty = parseInt(document.getElementById('out-qty').value);
+
+    let item = stock.find(i => i.code === code && i.wh.toLowerCase() === wh.toLowerCase());
+
+    if (!item || item.qty < qty) { 
+        alert('Błąd: Brak wystarczającej ilości towaru na tym magazynie!'); 
+        return; 
+    }
+
+    item.qty -= qty;
+    alert(`Pobrano: ${name} (-${qty} szt.) z magazynu ${wh}`);
+    document.getElementById('form-pobranie').reset();
+    saveToStorage();
+    showDashboard();
+}
+
+// 3. PRZESUNIĘCIE MIĘDZYMAGAZYNOWE
 function handleTransfer(e) {
     e.preventDefault();
     const code = document.getElementById('trans-code').value.trim();
@@ -153,6 +153,7 @@ function handleTransfer(e) {
     showDashboard();
 }
 
+// 4. TWORZENIE ZLECENIA WYDANIA
 function handleCreateOrder(e) {
     e.preventDefault();
     const code = document.getElementById('order-code').value.trim();
@@ -167,12 +168,13 @@ function handleCreateOrder(e) {
     showDashboard();
 }
 
+// 5. REALIZACJA WYDAŃ
 function renderOrders() {
     const container = document.getElementById('orders-list');
     container.innerHTML = '';
     const pending = orders.filter(o => o.status === 'Oczekuje');
 
-    if(pending.length === 0) { container.innerHTML = '<p>Brak zleceń.</p>'; return; }
+    if(pending.length === 0) { container.innerHTML = '<p>Brak aktywnych zleceń.</p>'; return; }
 
     pending.forEach(order => {
         const div = document.createElement('div');
@@ -196,11 +198,12 @@ function executeOrder(orderId) {
 
     item.qty -= order.qty;
     order.status = 'Zrealizowano';
-    alert('Wydano z magazynu!');
+    alert('Towar wydany z magazynu!');
     saveToStorage();
     renderOrders();
 }
 
+// 6. STAN MAGAZYNU I FLAGI
 function renderStock() {
     const tbody = document.getElementById('stock-table-body');
     const searchTxt = document.getElementById('search-input').value.toLowerCase();
