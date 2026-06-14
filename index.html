@@ -9,16 +9,18 @@
 </head>
 <body>
 
+    <datalist id="locations-list-options"></datalist>
+
     <div class="container">
         <div id="dashboard" class="dashboard-grid">
             <div class="tile header-tile">
                 <h1>Magazyn Mobilny</h1>
-                <p>Wybierz szybką operację z kafelków poniżej</p>
+                <p>Zarządzaj produktami i miejscami ich składowania</p>
             </div>
             
             <div class="tile" onclick="switchTab('stan-magazynu')">
                 <div class="tile-icon">📦</div>
-                <div class="tile-title">Stan Magazynu</div>
+                <div class="tile-title">Stan Miejsc</div>
             </div>
             
             <div class="tile" onclick="switchTab('przyjecie')">
@@ -34,6 +36,11 @@
             <div class="tile" onclick="switchTab('przesuniecie')">
                 <div class="tile-icon">🔀</div>
                 <div class="tile-title">Przesunięcie</div>
+            </div>
+
+            <div class="tile" onclick="switchTab('zarzadzaj-miejscami')">
+                <div class="tile-icon">📍</div>
+                <div class="tile-title">Dodaj Miejsce</div>
             </div>
             
             <div class="tile" onclick="switchTab('zlecenia')">
@@ -55,7 +62,7 @@
 
         <div id="scanner-modal" class="modal">
             <div class="modal-content">
-                <h3>Skanowanie kodu kreskowego...</h3>
+                <h3>Skanowanie kodu...</h3>
                 <div id="reader"></div>
                 <button class="back-btn" onclick="stopScanning()" style="background:#e74c3c; width:100%; margin-top:15px;">Zamknij aparat</button>
             </div>
@@ -63,17 +70,17 @@
 
         <div id="stan-magazynu" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>Aktualny Stan Magazynu</h2>
+            <h2>Aktualny Stan Miejsc</h2>
             <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Szukaj po kodzie, nazwie lub magazynie..." oninput="renderStock()">
+                <input type="text" id="search-input" placeholder="Szukaj po kodzie, nazwie lub miejscu..." oninput="renderStock()">
             </div>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
-                            <th>Kod</th>
+                            <th>Kod Towaru</th>
                             <th>Produkt</th>
-                            <th>Magazyn</th>
+                            <th>Miejsce</th>
                             <th>Ilość</th>
                             <th>Flaga</th>
                             <th>Akcja</th>
@@ -89,17 +96,20 @@
             <h2>📥 Przyjęcie Towaru (Odkładanie)</h2>
             <div class="card">
                 <form id="form-przyjecie" onsubmit="handleIncoming(event)">
-                    <label>Kod kreskowy:</label>
+                    <label>Kod kreskowy produktu:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="in-code" placeholder="Wpisz lub zeskanuj..." required onchange="autoFillName('in-code', 'in-name')">
+                        <input type="text" id="in-code" placeholder="Wpisz lub zeskanuj produkt..." required onchange="autoFillName('in-code', 'in-name')">
                         <button type="button" class="scan-btn" onclick="startScanning('in-code', 'in-name')">📷 Skanuj</button>
                     </div>
                     
                     <label>Nazwa produktu:</label>
                     <input type="text" id="in-name" placeholder="Uzupełni się sam lub wpisz nową" required>
                     
-                    <label>Do magazynu:</label>
-                    <input type="text" id="in-wh" placeholder="np. Główny, A, B" required>
+                    <label>Do miejsca:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="in-location" list="locations-list-options" placeholder="Wpisz nowe, wybierz z listy lub zeskanuj kod miejsca..." required onchange="autoCompleteLocation('in-location')">
+                        <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('in-location')">📷 Miejsce</button>
+                    </div>
                     
                     <label>Ilość:</label>
                     <input type="number" id="in-qty" min="1" required>
@@ -114,17 +124,20 @@
             <h2>📤 Pobranie Towaru (Trwałe usunięcie)</h2>
             <div class="card">
                 <form id="form-pobranie" onsubmit="handleOutgoing(event)">
-                    <label>Kod kreskowy:</label>
+                    <label>Kod kreskowy produktu:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="out-code" placeholder="Wpisz lub zeskanuj..." required onchange="autoFillName('out-code', 'out-name')">
+                        <input type="text" id="out-code" placeholder="Wpisz lub zeskanuj produkt..." required onchange="autoFillName('out-code', 'out-name')">
                         <button type="button" class="scan-btn" onclick="startScanning('out-code', 'out-name')">📷 Skanuj</button>
                     </div>
                     
                     <label>Nazwa produktu:</label>
                     <input type="text" id="out-name" readonly style="background: #eee;">
                     
-                    <label>Z magazynu:</label>
-                    <input type="text" id="out-wh" required>
+                    <label>Z miejsca:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="out-location" list="locations-list-options" placeholder="Wybierz lub zeskanuj miejsce..." required onchange="autoCompleteLocation('out-location')">
+                        <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('out-location')">📷 Miejsce</button>
+                    </div>
                     
                     <label>Ilość do pobrania:</label>
                     <input type="number" id="out-qty" min="1" required>
@@ -136,23 +149,29 @@
 
         <div id="przesuniecie" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>🔀 Przesunięcie Międzymagazynowe</h2>
+            <h2>🔀 Przesunięcie Międzymiejscowe</h2>
             <div class="card">
                 <form id="form-przesuniecie" onsubmit="handleTransfer(event)">
-                    <label>Kod kreskowy:</label>
+                    <label>Kod kreskowy produktu:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="trans-code" placeholder="Zeskanuj kod..." required onchange="autoFillName('trans-code', 'trans-name')">
+                        <input type="text" id="trans-code" placeholder="Zeskanuj produkt..." required onchange="autoFillName('trans-code', 'trans-name')">
                         <button type="button" class="scan-btn" onclick="startScanning('trans-code', 'trans-name')">📷 Skanuj</button>
                     </div>
                     
                     <label>Nazwa produktu:</label>
                     <input type="text" id="trans-name" readonly style="background: #eee;">
                     
-                    <label>Z magazynu:</label>
-                    <input type="text" id="trans-from" required>
+                    <label>Z miejsca:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="trans-from" list="locations-list-options" placeholder="Wybierz miejsce źródłowe..." required onchange="autoCompleteLocation('trans-from')">
+                        <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('trans-from')">📷 Miejsce</button>
+                    </div>
                     
-                    <label>Do magazynu:</label>
-                    <input type="text" id="trans-to" required>
+                    <label>Do miejsca:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="trans-to" list="locations-list-options" placeholder="Wybierz miejsce docelowe..." required onchange="autoCompleteLocation('trans-to')">
+                        <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('trans-to')">📷 Miejsce</button>
+                    </div>
                     
                     <label>Ilość:</label>
                     <input type="number" id="trans-qty" min="1" required>
@@ -162,22 +181,61 @@
             </div>
         </div>
 
+        <div id="zarzadzaj-miejscami" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>📍 Dodaj Nowe Miejsce (Lokalizację)</h2>
+            <div class="card">
+                <form id="form-lokalizacja" onsubmit="handleCreateLocation(event)">
+                    <label>Nazwa miejsca (Wymagane):</label>
+                    <input type="text" id="loc-name" placeholder="np. Regał A-1, Podłoga Sektor B, Kuweta 12" required>
+                    
+                    <label>Kod kreskowy miejsca (Opcjonalnie):</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="loc-code" placeholder="Zeskanuj kod kreskowy naklejony na półce...">
+                        <button type="button" class="scan-btn" onclick="startScanning('loc-code')">📷 Skanuj</button>
+                    </div>
+                    
+                    <label>Notatka / Opis (Opcjonalnie):</label>
+                    <input type="text" id="loc-notes" placeholder="np. Tylko na ciężkie towary, gabaryty...">
+                    
+                    <button type="submit" class="submit-btn" style="background-color: #9b59b6;">Zapisz Miejsce w Systemie</button>
+                </form>
+            </div>
+
+            <h3>Zapisane miejsca w bazie:</h3>
+            <div style="overflow-x: auto; margin-top: 15px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nazwa Miejsca</th>
+                            <th>Kod Kreskowy</th>
+                            <th>Notatki</th>
+                        </tr>
+                    </thead>
+                    <tbody id="locations-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
         <div id="zlecenia" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
             <h2>📝 Tworzenie Zlecenia Wydania</h2>
             <div class="card">
                 <form id="form-zlecenie" onsubmit="handleCreateOrder(event)">
-                    <label>Kod kreskowy:</label>
+                    <label>Kod kreskowy produktu:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="order-code" placeholder="Zeskanuj kod..." required onchange="autoFillName('order-code', 'order-name')">
+                        <input type="text" id="order-code" placeholder="Zeskanuj produkt..." required onchange="autoFillName('order-code', 'order-name')">
                         <button type="button" class="scan-btn" onclick="startScanning('order-code', 'order-name')">📷 Skanuj</button>
                     </div>
                     
                     <label>Nazwa produktu:</label>
                     <input type="text" id="order-name" readonly style="background: #eee;">
                     
-                    <label>Z magazynu:</label>
-                    <input type="text" id="order-wh" required>
+                    <label>Z miejsca:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="order-location" list="locations-list-options" placeholder="Skąd pobrać..." required onchange="autoCompleteLocation('order-location')">
+                        <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('order-location')">📷 Miejsce</button>
+                    </div>
                     
                     <label>Ilość do wydania:</label>
                     <input type="number" id="order-qty" min="1" required>
@@ -189,20 +247,20 @@
 
         <div id="wydania" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>🚚 Realizacja Wydań ze Zleceń</h2>
+            <h2>🚚 Realizacja Wydań z Miejsc</h2>
             <div id="orders-list"></div>
         </div>
 
         <div id="flagi" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>⭐ Flagi - Podsumowanie Stocku na Koniec Dnia</h2>
+            <h2>⭐ Flagi - Podsumowanie Miejsc na Koniec Dnia</h2>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
                             <th>Kod</th>
                             <th>Produkt</th>
-                            <th>Magazyn</th>
+                            <th>Miejsce</th>
                             <th>Stan Zamknięcia</th>
                         </tr>
                     </thead>
