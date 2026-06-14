@@ -71,6 +71,7 @@ body {
     display: flex;
     gap: 8px;
     margin-bottom: 10px;
+    position: relative; /* WAŻNE: podstawa do pozycjonowania listy */
 }
 
 .scan-input-group input {
@@ -89,6 +90,40 @@ body {
     font-size: 13px;
     height: 41px;
     white-space: nowrap;
+}
+
+/* AUTOMATYCZNE MOBILNE PODPOWIEDZI (ZAMIAST DATALIST) */
+.suggestions-box {
+    display: none;
+    position: absolute;
+    top: 43px;
+    left: 0;
+    width: 100%;
+    max-height: 180px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.suggestion-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+    color: #334155;
+    font-weight: 500;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:active, .suggestion-item:hover {
+    background-color: #f1f5f9;
+    color: #2563eb;
 }
 
 /* MODAL APARATU */
@@ -171,3 +206,4 @@ th { background-color: #f8f9fa; color: #2c3e50; }
 .flag-btn { padding: 4px 8px; border: none; border-radius: 4px; font-size: 12px; }
 .flag-btn.active { background-color: #f1c40f; }
 .flag-btn.inactive { background-color: #e0e0e0; }
+.loc-tag { background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; }
