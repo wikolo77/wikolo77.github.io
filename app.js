@@ -3,23 +3,25 @@ let orders = JSON.parse(localStorage.getItem('magazyn_orders')) || [];
 let locations = JSON.parse(localStorage.getItem('magazyn_locations')) || [];
 let html5QrcodeScanner = null;
 
-// AUTOMATYCZNA MIGRACJA I ZBIERANIE ISTNIEJĄCYCH MIEJSC DO BAZY PODPOWIEDZI
+// BANK LOKALIZACJI NA START (Jeśli baza jest pusta, tworzy podpowiedzi początkowe)
+if (locations.length === 0) {
+    locations = [
+        { name: 'Regał A-1', code: 'REG-A1', notes: 'Główny regał' },
+        { name: 'Regał B-1', code: 'REG-B1', notes: 'Strefa drobna' },
+        { name: 'Strefa Przyjęć', code: 'ST-PRZ', notes: 'Tymczasowe odkładanie' }
+    ];
+    localStorage.setItem('magazyn_locations', JSON.stringify(locations));
+}
+
+// MIGRACJA I ZBIERANIE MIEJSC Z ISTNIEJĄCEGO STOCKU
 stock.forEach(item => { 
-    // Zamiana starego pola 'wh' na 'location'
     if (item.wh && !item.location) { item.location = item.wh; delete item.wh; } 
-    
-    // Jeśli produkt ma przypisane miejsce, a nie ma go jeszcze w globalnej bazie miejsc - dodaj je!
     if (item.location) {
         const exists = locations.some(l => l.name.toLowerCase() === item.location.toLowerCase());
-        if (!exists) {
-            locations.push({ name: item.location, code: '', notes: 'Zmigrowano automatycznie z produktów' });
-        }
+        if (!exists) { locations.push({ name: item.location, code: '', notes: 'Zmigrowano automatycznie' }); }
     }
 });
-
 orders.forEach(order => { if (order.wh && !order.location) { order.location = order.wh; delete order.wh; } });
-
-// Zapisujemy zebrane automatycznie lokalizacje, żeby lista od razu działała
 localStorage.setItem('magazyn_locations', JSON.stringify(locations));
 
 function saveToStorage() {
@@ -28,6 +30,52 @@ function saveToStorage() {
     localStorage.setItem('magazyn_locations', JSON.stringify(locations));
     updateBadge();
 }
+
+// NOWY MECHANIZM: DYNAMICZNE MOBILNE PODPOWIEDZI (BEZ DATALIST)
+function showSuggestions(inputId) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(inputId + '-suggestions');
+    if (!box) return;
+
+    const val = input.value.toLowerCase().trim();
+    box.innerHTML = '';
+
+    // Filtrowanie bazy miejsc po tym, co wpisano
+    const filtered = locations.filter(loc => 
+        loc.name.toLowerCase().includes(val) || 
+        (loc.code && loc.code.toLowerCase().includes(val))
+    );
+
+    if (filtered.length === 0) {
+        box.style.display = 'none';
+        return;
+    }
+
+    // Generowanie elementów listy podpowiedzi
+    filtered.forEach(loc => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerText = loc.name;
+        if(loc.code) div.innerText += ` (${loc.code})`;
+
+        // Używamy mousedown zamiast click, żeby telefon zdążył kliknąć przed zamknięciem klawiatury
+        div.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // Blokuje domyślne zamknięcie (blur) pola
+            input.value = loc.name;
+            box.style.display = 'none';
+        });
+        box.appendChild(div);
+    });
+
+    box.style.display = 'block';
+}
+
+// Zamknięcie wszystkich list podpowiedzi, gdy klikniemy gdziekolwiek indziej na ekranie
+document.addEventListener('mousedown', function(e) {
+    if (!e.target.closest('.scan-input-group')) {
+        document.querySelectorAll('.suggestions-box').forEach(box => box.style.display = 'none');
+    }
+});
 
 // SKANOWANIE APARATEM
 function startScanning(targetInputId, targetNameId = null) {
@@ -39,12 +87,17 @@ function startScanning(targetInputId, targetNameId = null) {
         { fps: 15, qrbox: { width: 280, height: 160 } },
         (decodedText) => {
             document.getElementById(targetInputId).value = decodedText;
-            if (targetNameId) { autoFillName(targetInputId, targetNameId); } else { autoCompleteLocation(targetInputId); }
+            if (targetNameId) { 
+                autoFillName(targetInputId, targetNameId); 
+            } else { 
+                // Jeśli skanowaliśmy miejsce, sprawdź czy kod odpowiada jakiejś przyjaznej nazwie
+                autoCompleteLocation(targetInputId); 
+            }
             if (navigator.vibrate) navigator.vibrate(100);
             stopScanning();
         },
         (errorMessage) => {}
-    ).catch(err => { alert("Błąd kamery! Brak uprawnień lub połączenia HTTPS."); });
+    ).catch(err => { alert("Błąd kamery!"); });
 }
 
 function stopScanning() {
@@ -59,18 +112,6 @@ function autoCompleteLocation(inputId) {
     if (matchedLoc) { document.getElementById(inputId).value = matchedLoc.name; }
 }
 
-// ODŚWIEŻANIE LISTY PODPOWIEDZI W POLACH TEKSTOWYCH
-function renderLocationDatalist() {
-    const dl = document.getElementById('locations-list-options');
-    if (!dl) return;
-    dl.innerHTML = '';
-    locations.forEach(loc => {
-        const option = document.createElement('option');
-        option.value = loc.name;
-        dl.appendChild(option);
-    });
-}
-
 function checkAndAddLiveLocation(locationName) {
     const name = locationName.trim();
     if (!name) return;
@@ -78,7 +119,6 @@ function checkAndAddLiveLocation(locationName) {
     if (!exists) {
         locations.push({ name: name, code: '', notes: 'Dodano w locie' });
         saveToStorage();
-        renderLocationDatalist();
     }
 }
 
@@ -113,7 +153,7 @@ function updateBadge() {
     if (pendingOrdersCount > 0) { badge.innerText = pendingOrdersCount; badge.style.display = 'flex'; } else { badge.style.display = 'none'; }
 }
 
-// DODAWANIE LOKALIZACJI Z KAFELKA
+// FORMULARZ: DODAWANIE MIEJSCA
 function handleCreateLocation(e) {
     e.preventDefault();
     const name = document.getElementById('loc-name').value.trim();
@@ -126,7 +166,6 @@ function handleCreateLocation(e) {
     alert(`Dodano miejsce: ${name}`);
     document.getElementById('form-lokalizacja').reset();
     saveToStorage();
-    renderLocationDatalist();
     renderLocationsTable();
     showDashboard();
 }
@@ -243,14 +282,14 @@ function executeOrder(orderId) {
     renderOrders();
 }
 
-// INTEGRACJA: WYŚWIETLANIE STANU (Z UKRYWANIEM "0 sztuk")
+// INTEGRACJA: STAN PRODUKTÓW (UKRYWA TOWARY ZE STANEM "0")
 function renderStock() {
     const tbody = document.getElementById('stock-table-body');
     const searchTxt = document.getElementById('search-input').value.toLowerCase();
     tbody.innerHTML = '';
 
     stock.filter(item => 
-        item.qty > 0 && // POPRAWKA: Ukrywamy towary, których ilość spadła do zera
+        item.qty > 0 && 
         (item.name.toLowerCase().includes(searchTxt) || 
         item.code.toLowerCase().includes(searchTxt) ||
         item.location.toLowerCase().includes(searchTxt))
@@ -268,7 +307,7 @@ function toggleFlag(index) { stock[index].flagged = !stock[index].flagged; saveT
 function renderFlags() {
     const tbody = document.getElementById('flag-table-body');
     tbody.innerHTML = '';
-    stock.filter(item => item.flagged && item.qty > 0).forEach(item => { // Tutaj też ukrywamy zera
+    stock.filter(item => item.flagged && item.qty > 0).forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${item.code}</td><td><strong>${item.name}</strong></td><td>📍 ${item.location}</td><td><b>${item.qty} szt.</b></td>`;
         tbody.appendChild(tr);
@@ -276,5 +315,4 @@ function renderFlags() {
 }
 
 // INICJALIZACJA SYSTEMU
-renderLocationDatalist();
 updateBadge();
