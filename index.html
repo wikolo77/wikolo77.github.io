@@ -13,7 +13,7 @@
         <div id="dashboard" class="dashboard-grid">
             <div class="tile header-tile">
                 <h1>Magazyn Mobilny</h1>
-                <p>Zarządzaj stockiem i skanuj kody aparatem telefonu</p>
+                <p>Wybierz szybką operację z kafelków poniżej</p>
             </div>
             
             <div class="tile" onclick="switchTab('stan-magazynu')">
@@ -21,19 +21,29 @@
                 <div class="tile-title">Stan Magazynu</div>
             </div>
             
-            <div class="tile" onclick="switchTab('operacje')">
-                <div class="tile-icon">🔄</div>
-                <div class="tile-title">Przyjęcie / Pobranie / Ruch</div>
+            <div class="tile" onclick="switchTab('przyjecie')">
+                <div class="tile-icon">📥</div>
+                <div class="tile-title">Przyjęcie Towaru</div>
+            </div>
+
+            <div class="tile" onclick="switchTab('pobranie')">
+                <div class="tile-icon">📤</div>
+                <div class="tile-title">Pobranie Towaru</div>
+            </div>
+
+            <div class="tile" onclick="switchTab('przesuniecie')">
+                <div class="tile-icon">🔀</div>
+                <div class="tile-title">Przesunięcie</div>
             </div>
             
             <div class="tile" onclick="switchTab('zlecenia')">
                 <div class="tile-icon">📝</div>
-                <div class="tile-title">Nowe Zlecenie Wydania</div>
+                <div class="tile-title">Nowe Zlecenie</div>
             </div>
             
             <div class="tile" onclick="switchTab('wydania')">
                 <div class="tile-icon">🚚</div>
-                <div class="tile-title">Wydanie z Magazynu</div>
+                <div class="tile-title">Realizacja Wydań</div>
                 <span id="order-badge" class="badge">0</span>
             </div>
             
@@ -74,39 +84,60 @@
             </div>
         </div>
 
-        <div id="operacje" class="tab-content">
+        <div id="przyjecie" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>Operacje Magazynowe</h2>
-            
+            <h2>📥 Przyjęcie Towaru (Odkładanie)</h2>
             <div class="card">
-                <h3>Przyjęcie / Pobranie Towaru</h3>
-                <form id="form-operacja" onsubmit="handleOperation(event)">
+                <form id="form-przyjecie" onsubmit="handleIncoming(event)">
                     <label>Kod kreskowy:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="op-code" placeholder="Wpisz lub zeskanuj..." required onchange="autoFillName('op-code', 'op-name')">
-                        <button type="button" class="scan-btn" onclick="startScanning('op-code', 'op-name')">📷 Skanuj</button>
+                        <input type="text" id="in-code" placeholder="Wpisz lub zeskanuj..." required onchange="autoFillName('in-code', 'in-name')">
+                        <button type="button" class="scan-btn" onclick="startScanning('in-code', 'in-name')">📷 Skanuj</button>
                     </div>
                     
                     <label>Nazwa produktu:</label>
-                    <input type="text" id="op-name" required>
+                    <input type="text" id="in-name" placeholder="Uzupełni się sam lub wpisz nową" required>
                     
-                    <label>Magazyn:</label>
-                    <input type="text" id="op-wh" required>
+                    <label>Do magazynu:</label>
+                    <input type="text" id="in-wh" placeholder="np. Główny, A, B" required>
                     
                     <label>Ilość:</label>
-                    <input type="number" id="op-qty" min="1" required>
+                    <input type="number" id="in-qty" min="1" required>
                     
-                    <label>Typ operacji:</label>
-                    <select id="op-type">
-                        <option value="in">Odkładanie (Przyjęcie)</option>
-                        <option value="out">Pobranie (Trwałe usunięcie)</option>
-                    </select>
-                    <button type="submit" class="submit-btn">Wykonaj</button>
+                    <button type="submit" class="submit-btn" style="background-color: #2ecc71;">Zatwierdź Przyjęcie</button>
                 </form>
             </div>
+        </div>
 
+        <div id="pobranie" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>📤 Pobranie Towaru (Trwałe usunięcie)</h2>
             <div class="card">
-                <h3>Przesunięcie Międzymagazynowe</h3>
+                <form id="form-pobranie" onsubmit="handleOutgoing(event)">
+                    <label>Kod kreskowy:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="out-code" placeholder="Wpisz lub zeskanuj..." required onchange="autoFillName('out-code', 'out-name')">
+                        <button type="button" class="scan-btn" onclick="startScanning('out-code', 'out-name')">📷 Skanuj</button>
+                    </div>
+                    
+                    <label>Nazwa produktu:</label>
+                    <input type="text" id="out-name" readonly style="background: #eee;">
+                    
+                    <label>Z magazynu:</label>
+                    <input type="text" id="out-wh" required>
+                    
+                    <label>Ilość do pobrania:</label>
+                    <input type="number" id="out-qty" min="1" required>
+                    
+                    <button type="submit" class="submit-btn" style="background-color: #e74c3c;">Zatwierdź Pobranie</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="przesuniecie" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>🔀 Przesunięcie Międzymagazynowe</h2>
+            <div class="card">
                 <form id="form-przesuniecie" onsubmit="handleTransfer(event)">
                     <label>Kod kreskowy:</label>
                     <div class="scan-input-group">
@@ -126,14 +157,14 @@
                     <label>Ilość:</label>
                     <input type="number" id="trans-qty" min="1" required>
                     
-                    <button type="submit" class="submit-btn" style="background-color: #3498db;">Przesuń</button>
+                    <button type="submit" class="submit-btn" style="background-color: #3498db;">Zatwierdź Przesunięcie</button>
                 </form>
             </div>
         </div>
 
         <div id="zlecenia" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>Tworzenie Zlecenia Wydania</h2>
+            <h2>📝 Tworzenie Zlecenia Wydania</h2>
             <div class="card">
                 <form id="form-zlecenie" onsubmit="handleCreateOrder(event)">
                     <label>Kod kreskowy:</label>
@@ -158,13 +189,13 @@
 
         <div id="wydania" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>Realizacja Wydań (Zlecenia)</h2>
+            <h2>🚚 Realizacja Wydań ze Zleceń</h2>
             <div id="orders-list"></div>
         </div>
 
         <div id="flagi" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>Flagi - Podsumowanie Stocku na Koniec Dnia</h2>
+            <h2>⭐ Flagi - Podsumowanie Stocku na Koniec Dnia</h2>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
