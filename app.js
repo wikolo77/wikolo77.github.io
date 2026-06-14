@@ -3,9 +3,24 @@ let orders = JSON.parse(localStorage.getItem('magazyn_orders')) || [];
 let locations = JSON.parse(localStorage.getItem('magazyn_locations')) || [];
 let html5QrcodeScanner = null;
 
-// AUTOMATYCZNA MIGRACJA (ze starej wersji systemu "wh" -> "location")
-stock.forEach(item => { if (item.wh && !item.location) { item.location = item.wh; delete item.wh; } });
+// AUTOMATYCZNA MIGRACJA I ZBIERANIE ISTNIEJĄCYCH MIEJSC DO BAZY PODPOWIEDZI
+stock.forEach(item => { 
+    // Zamiana starego pola 'wh' na 'location'
+    if (item.wh && !item.location) { item.location = item.wh; delete item.wh; } 
+    
+    // Jeśli produkt ma przypisane miejsce, a nie ma go jeszcze w globalnej bazie miejsc - dodaj je!
+    if (item.location) {
+        const exists = locations.some(l => l.name.toLowerCase() === item.location.toLowerCase());
+        if (!exists) {
+            locations.push({ name: item.location, code: '', notes: 'Zmigrowano automatycznie z produktów' });
+        }
+    }
+});
+
 orders.forEach(order => { if (order.wh && !order.location) { order.location = order.wh; delete order.wh; } });
+
+// Zapisujemy zebrane automatycznie lokalizacje, żeby lista od razu działała
+localStorage.setItem('magazyn_locations', JSON.stringify(locations));
 
 function saveToStorage() {
     localStorage.setItem('magazyn_stock', JSON.stringify(stock));
@@ -14,84 +29,60 @@ function saveToStorage() {
     updateBadge();
 }
 
-// INTEGELENTNE PODPOWIEDZI DLA APARATU
+// SKANOWANIE APARATEM
 function startScanning(targetInputId, targetNameId = null) {
     document.getElementById('scanner-modal').style.display = 'flex';
-    
-    if (!html5QrcodeScanner) {
-        html5QrcodeScanner = new Html5Qrcode("reader");
-    }
+    if (!html5QrcodeScanner) { html5QrcodeScanner = new Html5Qrcode("reader"); }
     
     html5QrcodeScanner.start(
         { facingMode: "environment" }, 
         { fps: 15, qrbox: { width: 280, height: 160 } },
         (decodedText) => {
             document.getElementById(targetInputId).value = decodedText;
-            
-            // Jeśli skanowaliśmy produkt (przekazany targetNameId)
-            if (targetNameId) {
-                autoFillName(targetInputId, targetNameId);
-            } else {
-                // Jeśli skanowaliśmy miejsce
-                autoCompleteLocation(targetInputId);
-            }
-            
+            if (targetNameId) { autoFillName(targetInputId, targetNameId); } else { autoCompleteLocation(targetInputId); }
             if (navigator.vibrate) navigator.vibrate(100);
             stopScanning();
         },
         (errorMessage) => {}
-    ).catch(err => {
-        alert("Błąd kamery! Brak uprawnień lub połączenia HTTPS.");
-    });
+    ).catch(err => { alert("Błąd kamery! Brak uprawnień lub połączenia HTTPS."); });
 }
 
 function stopScanning() {
     document.getElementById('scanner-modal').style.display = 'none';
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => {}).catch(err => {});
-    }
+    if (html5QrcodeScanner) { html5QrcodeScanner.stop().then(() => {}).catch(err => {}); }
 }
 
-// SPRAWDZANIE I AUTOUZUPEŁNIANIE KODÓW MIEJSC
 function autoCompleteLocation(inputId) {
     const val = document.getElementById(inputId).value.trim();
     if (!val) return;
-
-    // Szukamy czy wpisany/zeskanowany ciąg pasuje do kodu kreskowego zapisanego miejsca
     const matchedLoc = locations.find(l => l.code === val || l.name.toLowerCase() === val.toLowerCase());
-    if (matchedLoc) {
-        document.getElementById(inputId).value = matchedLoc.name; // zamień kod na ładną nazwę
-    }
+    if (matchedLoc) { document.getElementById(inputId).value = matchedLoc.name; }
 }
 
-// AKTUALIZACJA OPTYMALNEJ LISTY ROZWIJANEJ W HTML
+// ODŚWIEŻANIE LISTY PODPOWIEDZI W POLACH TEKSTOWYCH
 function renderLocationDatalist() {
     const dl = document.getElementById('locations-list-options');
     if (!dl) return;
     dl.innerHTML = '';
-    
     locations.forEach(loc => {
         const option = document.createElement('option');
         option.value = loc.name;
-        if (loc.code) option.label = `Kod: ${loc.code}`;
         dl.appendChild(option);
     });
 }
 
-// SPRAWDZANIE CZY WPISANE NOWE MIEJSCE TRZEBA DOPISAĆ DO BAZY PODPOWIEDZI
 function checkAndAddLiveLocation(locationName) {
     const name = locationName.trim();
     if (!name) return;
-    
     const exists = locations.some(l => l.name.toLowerCase() === name.toLowerCase());
     if (!exists) {
-        locations.push({ name: name, code: '', notes: 'Dodano automatycznie podczas operacji' });
+        locations.push({ name: name, code: '', notes: 'Dodano w locie' });
         saveToStorage();
         renderLocationDatalist();
     }
 }
 
-// NAWIGACJA ZAKŁADEK
+// NAWIGACJA
 function switchTab(tabId) {
     document.getElementById('dashboard').style.display = 'none';
     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
@@ -113,29 +104,23 @@ function autoFillName(codeFieldId, nameFieldId) {
     const code = document.getElementById(codeFieldId).value.trim();
     if(!code) return;
     const existingProduct = stock.find(item => item.code === code);
-    if(existingProduct) {
-        document.getElementById(nameFieldId).value = existingProduct.name;
-    }
+    if(existingProduct) { document.getElementById(nameFieldId).value = existingProduct.name; }
 }
 
 function updateBadge() {
     const pendingOrdersCount = orders.filter(o => o.status === 'Oczekuje').length;
     const badge = document.getElementById('order-badge');
-    if (pendingOrdersCount > 0) { badge.innerText = pendingOrdersCount; badge.style.display = 'flex'; } 
-    else { badge.style.display = 'none'; }
+    if (pendingOrdersCount > 0) { badge.innerText = pendingOrdersCount; badge.style.display = 'flex'; } else { badge.style.display = 'none'; }
 }
 
-// DODAWANIE NOWEGO MIEJSCA
+// DODAWANIE LOKALIZACJI Z KAFELKA
 function handleCreateLocation(e) {
     e.preventDefault();
     const name = document.getElementById('loc-name').value.trim();
     const code = document.getElementById('loc-code').value.trim();
     const notes = document.getElementById('loc-notes').value.trim();
 
-    if(locations.some(l => l.name.toLowerCase() === name.toLowerCase())) {
-        alert('Miejsce o tej nazwie już istnieje!');
-        return;
-    }
+    if(locations.some(l => l.name.toLowerCase() === name.toLowerCase())) { alert('Miejsce o tej nazwie już istnieje!'); return; }
 
     locations.push({ name, code, notes });
     alert(`Dodano miejsce: ${name}`);
@@ -258,15 +243,17 @@ function executeOrder(orderId) {
     renderOrders();
 }
 
+// INTEGRACJA: WYŚWIETLANIE STANU (Z UKRYWANIEM "0 sztuk")
 function renderStock() {
     const tbody = document.getElementById('stock-table-body');
     const searchTxt = document.getElementById('search-input').value.toLowerCase();
     tbody.innerHTML = '';
 
     stock.filter(item => 
-        item.name.toLowerCase().includes(searchTxt) || 
+        item.qty > 0 && // POPRAWKA: Ukrywamy towary, których ilość spadła do zera
+        (item.name.toLowerCase().includes(searchTxt) || 
         item.code.toLowerCase().includes(searchTxt) ||
-        item.location.toLowerCase().includes(searchTxt)
+        item.location.toLowerCase().includes(searchTxt))
     ).forEach(item => {
         const idx = stock.findIndex(i => i === item);
         const tr = document.createElement('tr');
@@ -281,13 +268,13 @@ function toggleFlag(index) { stock[index].flagged = !stock[index].flagged; saveT
 function renderFlags() {
     const tbody = document.getElementById('flag-table-body');
     tbody.innerHTML = '';
-    stock.filter(item => item.flagged).forEach(item => {
+    stock.filter(item => item.flagged && item.qty > 0).forEach(item => { // Tutaj też ukrywamy zera
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${item.code}</td><td><strong>${item.name}</strong></td><td>📍 ${item.location}</td><td><b>${item.qty} szt.</b></td>`;
         tbody.appendChild(tr);
     });
 }
 
-// INICJALIZACJA SYSTEMU NA START
+// INICJALIZACJA SYSTEMU
 renderLocationDatalist();
 updateBadge();
