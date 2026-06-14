@@ -9,8 +9,6 @@
 </head>
 <body>
 
-    <datalist id="locations-list-options"></datalist>
-
     <div class="container">
         <div id="dashboard" class="dashboard-grid">
             <div class="tile header-tile">
@@ -107,8 +105,9 @@
                     
                     <label>Do miejsca:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="in-location" list="locations-list-options" placeholder="Wpisz nowe, wybierz z listy lub zeskanuj kod miejsca..." required onchange="autoCompleteLocation('in-location')">
+                        <input type="text" id="in-location" placeholder="Kliknij, wpisz lub zeskanuj miejsce..." required autocomplete="off" onfocus="showSuggestions('in-location')" oninput="showSuggestions('in-location')">
                         <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('in-location')">📷 Miejsce</button>
+                        <div id="in-location-suggestions" class="suggestions-box"></div>
                     </div>
                     
                     <label>Ilość:</label>
@@ -135,8 +134,9 @@
                     
                     <label>Z miejsca:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="out-location" list="locations-list-options" placeholder="Wybierz lub zeskanuj miejsce..." required onchange="autoCompleteLocation('out-location')">
+                        <input type="text" id="out-location" placeholder="Kliknij lub zeskanuj miejsce..." required autocomplete="off" onfocus="showSuggestions('out-location')" oninput="showSuggestions('out-location')">
                         <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('out-location')">📷 Miejsce</button>
+                        <div id="out-location-suggestions" class="suggestions-box"></div>
                     </div>
                     
                     <label>Ilość do pobrania:</label>
@@ -163,14 +163,16 @@
                     
                     <label>Z miejsca:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="trans-from" list="locations-list-options" placeholder="Wybierz miejsce źródłowe..." required onchange="autoCompleteLocation('trans-from')">
+                        <input type="text" id="trans-from" placeholder="Wybierz miejsce źródłowe..." required autocomplete="off" onfocus="showSuggestions('trans-from')" oninput="showSuggestions('trans-from')">
                         <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('trans-from')">📷 Miejsce</button>
+                        <div id="trans-from-suggestions" class="suggestions-box"></div>
                     </div>
                     
                     <label>Do miejsca:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="trans-to" list="locations-list-options" placeholder="Wybierz miejsce docelowe..." required onchange="autoCompleteLocation('trans-to')">
+                        <input type="text" id="trans-to" placeholder="Wybierz miejsce docelowe..." required autocomplete="off" onfocus="showSuggestions('trans-to')" oninput="showSuggestions('trans-to')">
                         <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('trans-to')">📷 Miejsce</button>
+                        <div id="trans-to-suggestions" class="suggestions-box"></div>
                     </div>
                     
                     <label>Ilość:</label>
@@ -233,8 +235,9 @@
                     
                     <label>Z miejsca:</label>
                     <div class="scan-input-group">
-                        <input type="text" id="order-location" list="locations-list-options" placeholder="Skąd pobrać..." required onchange="autoCompleteLocation('order-location')">
+                        <input type="text" id="order-location" placeholder="Skąd pobrać..." required autocomplete="off" onfocus="showSuggestions('order-location')" oninput="showSuggestions('order-location')">
                         <button type="button" class="scan-btn" style="background-color: #16a085;" onclick="startScanning('order-location')">📷 Miejsce</button>
+                        <div id="order-location-suggestions" class="suggestions-box"></div>
                     </div>
                     
                     <label>Ilość do wydania:</label>
