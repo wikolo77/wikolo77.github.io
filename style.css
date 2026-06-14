@@ -50,7 +50,6 @@ body {
 .tile-icon { font-size: 32px; margin-bottom: 8px; }
 .tile-title { font-size: 14px; font-weight: 600; }
 
-/* POWIADOMIENIE (CZERWONA KROPKA) */
 .badge {
     position: absolute;
     top: 10px;
@@ -67,13 +66,15 @@ body {
     justify-content: center;
 }
 
-/* GRUPA PRZYCISK SKANOWANIA + PODGLĄD KODU */
+/* GRUPA PRZYCISK SKANOWANIA + INPUT */
 .scan-input-group {
     display: flex;
     gap: 8px;
+    margin-bottom: 10px;
 }
 
 .scan-input-group input {
+    margin-bottom: 0 !important;
     flex: 1;
 }
 
@@ -81,11 +82,13 @@ body {
     background-color: #34495e;
     color: white;
     border: none;
-    padding: 0 15px;
+    padding: 0 12px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
+    font-size: 13px;
     height: 41px;
+    white-space: nowrap;
 }
 
 /* MODAL APARATU */
@@ -137,10 +140,11 @@ body {
 }
 
 h2 { margin-bottom: 15px; font-size: 20px; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+h3 { margin: 15px 0 10px; font-size: 16px; color: #34495e; }
 .card { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
 form label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 14px; }
 form input, form select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
-.submit-btn { color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; }
+.submit-btn { color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; margin-top: 10px; }
 
 /* TABELA */
 table { width: 100%; border-collapse: collapse; min-width: 500px; }
