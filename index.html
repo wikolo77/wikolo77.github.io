@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Magazynowy - Mobilny</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+    <div class="container">
+        <div id="dashboard" class="dashboard-grid">
+            <div class="tile header-tile">
+                <h1>Magazyn Mobilny</h1>
+                <p>Zarządzaj stockiem i skanuj kody aparatem telefonu</p>
+            </div>
+            
+            <div class="tile" onclick="switchTab('stan-magazynu')">
+                <div class="tile-icon">📦</div>
+                <div class="tile-title">Stan Magazynu</div>
+            </div>
+            
+            <div class="tile" onclick="switchTab('operacje')">
+                <div class="tile-icon">🔄</div>
+                <div class="tile-title">Przyjęcie / Pobranie / Ruch</div>
+            </div>
+            
+            <div class="tile" onclick="switchTab('zlecenia')">
+                <div class="tile-icon">📝</div>
+                <div class="tile-title">Nowe Zlecenie Wydania</div>
+            </div>
+            
+            <div class="tile" onclick="switchTab('wydania')">
+                <div class="tile-icon">🚚</div>
+                <div class="tile-title">Wydanie z Magazynu</div>
+                <span id="order-badge" class="badge">0</span>
+            </div>
+            
+            <div class="tile" onclick="switchTab('flagi')">
+                <div class="tile-icon">⭐</div>
+                <div class="tile-title">Flagi (Stock EOD)</div>
+            </div>
+        </div>
+
+        <div id="scanner-modal" class="modal">
+            <div class="modal-content">
+                <h3>Skanowanie kodu kreskowego...</h3>
+                <div id="reader"></div>
+                <button class="back-btn" onclick="stopScanning()" style="background:#e74c3c; width:100%; margin-top:15px;">Zamknij aparat</button>
+            </div>
+        </div>
+
+        <div id="stan-magazynu" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>Aktualny Stan Magazynu</h2>
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Szukaj po kodzie, nazwie lub magazynie..." oninput="renderStock()">
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>Produkt</th>
+                            <th>Magazyn</th>
+                            <th>Ilość</th>
+                            <th>Flaga</th>
+                            <th>Akcja</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="operacje" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>Operacje Magazynowe</h2>
+            
+            <div class="card">
+                <h3>Przyjęcie / Pobranie Towaru</h3>
+                <form id="form-operacja" onsubmit="handleOperation(event)">
+                    <label>Kod kreskowy:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="op-code" placeholder="Wpisz lub zeskanuj..." required onchange="autoFillName('op-code', 'op-name')">
+                        <button type="button" class="scan-btn" onclick="startScanning('op-code', 'op-name')">📷 Skanuj</button>
+                    </div>
+                    
+                    <label>Nazwa produktu:</label>
+                    <input type="text" id="op-name" required>
+                    
+                    <label>Magazyn:</label>
+                    <input type="text" id="op-wh" required>
+                    
+                    <label>Ilość:</label>
+                    <input type="number" id="op-qty" min="1" required>
+                    
+                    <label>Typ operacji:</label>
+                    <select id="op-type">
+                        <option value="in">Odkładanie (Przyjęcie)</option>
+                        <option value="out">Pobranie (Trwałe usunięcie)</option>
+                    </select>
+                    <button type="submit" class="submit-btn">Wykonaj</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Przesunięcie Międzymagazynowe</h3>
+                <form id="form-przesuniecie" onsubmit="handleTransfer(event)">
+                    <label>Kod kreskowy:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="trans-code" placeholder="Zeskanuj kod..." required onchange="autoFillName('trans-code', 'trans-name')">
+                        <button type="button" class="scan-btn" onclick="startScanning('trans-code', 'trans-name')">📷 Skanuj</button>
+                    </div>
+                    
+                    <label>Nazwa produktu:</label>
+                    <input type="text" id="trans-name" readonly style="background: #eee;">
+                    
+                    <label>Z magazynu:</label>
+                    <input type="text" id="trans-from" required>
+                    
+                    <label>Do magazynu:</label>
+                    <input type="text" id="trans-to" required>
+                    
+                    <label>Ilość:</label>
+                    <input type="number" id="trans-qty" min="1" required>
+                    
+                    <button type="submit" class="submit-btn" style="background-color: #3498db;">Przesuń</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="zlecenia" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>Tworzenie Zlecenia Wydania</h2>
+            <div class="card">
+                <form id="form-zlecenie" onsubmit="handleCreateOrder(event)">
+                    <label>Kod kreskowy:</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="order-code" placeholder="Zeskanuj kod..." required onchange="autoFillName('order-code', 'order-name')">
+                        <button type="button" class="scan-btn" onclick="startScanning('order-code', 'order-name')">📷 Skanuj</button>
+                    </div>
+                    
+                    <label>Nazwa produktu:</label>
+                    <input type="text" id="order-name" readonly style="background: #eee;">
+                    
+                    <label>Z magazynu:</label>
+                    <input type="text" id="order-wh" required>
+                    
+                    <label>Ilość do wydania:</label>
+                    <input type="number" id="order-qty" min="1" required>
+                    
+                    <button type="submit" class="submit-btn" style="background-color: #e67e22;">Utwórz Zlecenie</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="wydania" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>Realizacja Wydań (Zlecenia)</h2>
+            <div id="orders-list"></div>
+        </div>
+
+        <div id="flagi" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>Flagi - Podsumowanie Stocku na Koniec Dnia</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>Produkt</th>
+                            <th>Magazyn</th>
+                            <th>Stan Zamknięcia</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flag-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
