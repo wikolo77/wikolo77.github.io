@@ -13,7 +13,7 @@
         <div id="dashboard" class="dashboard-grid">
             <div class="tile header-tile">
                 <h1>Magazyn Mobilny</h1>
-                <p>Zarządzaj produktami i miejscami ich składowania</p>
+                <p>Zarządzaj produktami i narzędziami</p>
             </div>
             
             <div class="tile" onclick="switchTab('stan-magazynu')">
@@ -36,6 +36,16 @@
                 <div class="tile-title">Przesunięcie</div>
             </div>
 
+            <div class="tile" onclick="switchTab('pobierz-narzedzie')">
+                <div class="tile-icon">🛠️</div>
+                <div class="tile-title">Pobierz Narzędzie</div>
+            </div>
+
+            <div class="tile" onclick="switchTab('oddaj-narzedzie')">
+                <div class="tile-icon">🔄</div>
+                <div class="tile-title">Oddaj Narzędzie</div>
+            </div>
+
             <div class="tile" onclick="switchTab('zarzadzaj-miejscami')">
                 <div class="tile-icon">📍</div>
                 <div class="tile-title">Dodaj Miejsce</div>
@@ -51,11 +61,6 @@
                 <div class="tile-title">Realizacja Wydań</div>
                 <span id="order-badge" class="badge">0</span>
             </div>
-            
-            <div class="tile" onclick="switchTab('flagi')">
-                <div class="tile-icon">⭐</div>
-                <div class="tile-title">Flagi (Stock EOD)</div>
-            </div>
         </div>
 
         <div id="scanner-modal" class="modal">
@@ -68,7 +73,7 @@
 
         <div id="stan-magazynu" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>Aktualny Stan Miejsc</h2>
+            <h2>Aktualny Stan Miejsc i Towarów</h2>
             <div class="search-bar">
                 <input type="text" id="search-input" placeholder="Szukaj po kodzie, nazwie lub miejscu..." oninput="renderStock()">
             </div>
@@ -76,10 +81,10 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Kod Towaru</th>
-                            <th>Produkt</th>
-                            <th>Miejsce</th>
-                            <th>Ilość</th>
+                            <th>Kod</th>
+                            <th>Nazwa / Produkt</th>
+                            <th>Miejsce / Typ</th>
+                            <th>Stan / Status</th>
                             <th>Flaga</th>
                             <th>Akcja</th>
                         </tr>
@@ -183,13 +188,69 @@
             </div>
         </div>
 
+        <div id="pobierz-narzedzie" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>🛠️ Pobierz Narzędzie z Magazynu</h2>
+            
+            <div class="scan-input-group" style="margin-bottom: 20px;">
+                <input type="text" id="tool-take-search" placeholder="Wpisz nazwę, kod lub zeskanuj sprzęt..." oninput="renderToolsLists()">
+                <button type="button" class="scan-btn" onclick="startScanning('tool-take-search')">📷 Skanuj</button>
+            </div>
+
+            <div id="tools-take-list" class="tools-list-container"></div>
+        </div>
+
+        <div id="oddaj-narzedzie" class="tab-content">
+            <div class="section-header-flex">
+                <button class="back-btn" onclick="showDashboard()" style="margin-bottom:0;">← Menu Główne</button>
+                <div style="display: flex; gap: 8px;">
+                    <button id="tool-trash-btn" class="trash-square-btn" onclick="toggleToolDeleteMode()" title="Usuń narzędzia z bazy">🗑️</button>
+                    <button class="add-square-btn" onclick="toggleAddToolForm()" title="Dodaj nowe narzędzie">＋</button>
+                </div>
+            </div>
+            
+            <h2 style="margin-top:15px;">🔄 Oddaj Narzędzie / Zarządzaj bazą</h2>
+
+            <div id="delete-tools-actions" style="display: none; margin-bottom: 15px;">
+                <button class="submit-btn" style="background-color: #e74c3c; margin-top: 0; box-shadow: 0 4px 10px rgba(231,76,60,0.3);" onclick="confirmDeleteSelectedTools()">
+                    💥 Zatwierdź i usuń zaznaczone
+                </button>
+            </div>
+
+            <div class="scan-input-group" style="margin-bottom: 20px;">
+                <input type="text" id="tool-return-search" placeholder="Wpisz nazwę, kod lub zeskanuj sprzęt..." oninput="renderToolsLists()">
+                <button type="button" class="scan-btn" onclick="startScanning('tool-return-search')">📷 Skanuj</button>
+            </div>
+
+            <div id="add-tool-card" class="card" style="display: none; border: 2px dashed #9b59b6;">
+                <h3>🔨 Dodaj Nowe Narzędzie do Systemu</h3>
+                <form id="form-narzedzie" onsubmit="handleCreateTool(event)">
+                    <label>Kod / ID Narzędzia (Wymagane):</label>
+                    <div class="scan-input-group">
+                        <input type="text" id="tool-code" placeholder="Zeskanuj unikalny kod naklejony na sprzęt..." required>
+                        <button type="button" class="scan-btn" onclick="startScanning('tool-code')">📷 Skanuj</button>
+                    </div>
+                    
+                    <label>Nazwa Narzędzia (Wymagane):</label>
+                    <input type="text" id="tool-name" placeholder="np. Wkrętarka Makita DDF482, Szlifierka Bosch" required>
+                    
+                    <label>Notatka / Opis (Opcjonalnie):</label>
+                    <input type="text" id="tool-notes" placeholder="np. Walizka niebieska, Szafa narzędziowa półka 2">
+                    
+                    <button type="submit" class="submit-btn" style="background-color: #9b59b6;">Zapisz Narzędzie w Bazie</button>
+                </form>
+            </div>
+
+            <div id="tools-return-list" class="tools-list-container"></div>
+        </div>
+
         <div id="zarzadzaj-miejscami" class="tab-content">
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
             <h2>📍 Dodaj Nowe Miejsce (Lokalizację)</h2>
             <div class="card">
                 <form id="form-lokalizacja" onsubmit="handleCreateLocation(event)">
                     <label>Nazwa miejsca (Wymagane):</label>
-                    <input type="text" id="loc-name" placeholder="np. Regał A-1, Podłoga Sektor B, Kuweta 12" required>
+                    <input type="text" id="loc-name" placeholder="np. Regał A-1, Podłoga Sektor B" required>
                     
                     <label>Kod kreskowy miejsca (Opcjonalnie):</label>
                     <div class="scan-input-group">
@@ -198,7 +259,7 @@
                     </div>
                     
                     <label>Notatka / Opis (Opcjonalnie):</label>
-                    <input type="text" id="loc-notes" placeholder="np. Tylko na ciężkie towary, gabaryty...">
+                    <input type="text" id="loc-notes" placeholder="np. Gabaryty">
                     
                     <button type="submit" class="submit-btn" style="background-color: #9b59b6;">Zapisz Miejsce w Systemie</button>
                 </form>
@@ -212,6 +273,7 @@
                             <th>Nazwa Miejsca</th>
                             <th>Kod Kreskowy</th>
                             <th>Notatki</th>
+                            <th>Akcja</th>
                         </tr>
                     </thead>
                     <tbody id="locations-table-body"></tbody>
@@ -252,24 +314,6 @@
             <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
             <h2>🚚 Realizacja Wydań z Miejsc</h2>
             <div id="orders-list"></div>
-        </div>
-
-        <div id="flagi" class="tab-content">
-            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
-            <h2>⭐ Flagi - Podsumowanie Miejsc na Koniec Dnia</h2>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Kod</th>
-                            <th>Produkt</th>
-                            <th>Miejsce</th>
-                            <th>Stan Zamknięcia</th>
-                        </tr>
-                    </thead>
-                    <tbody id="flag-table-body"></tbody>
-                </table>
-            </div>
         </div>
     </div>
 
