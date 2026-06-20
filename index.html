@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Magazynowy - Mobilny</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.3">
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -60,6 +61,16 @@
                 <div class="tile-icon">🚚</div>
                 <div class="tile-title">Realizacja Wydań</div>
                 <span id="order-badge" class="badge">0</span>
+            </div>
+
+            <div class="tile" onclick="switchTab('zapotrzebowanie')">
+                <div class="tile-icon">📋</div>
+                <div class="tile-title">Zapotrzebowanie</div>
+            </div>
+
+            <div class="tile" onclick="switchTab('raporty')" style="border: 1px solid #3498db;">
+                <div class="tile-icon">📊</div>
+                <div class="tile-title" style="color: #2980b9;">Raporty Dzienne</div>
             </div>
         </div>
 
@@ -232,10 +243,10 @@
                     </div>
                     
                     <label>Nazwa Narzędzia (Wymagane):</label>
-                    <input type="text" id="tool-name" placeholder="np. Wkrętarka Makita DDF482, Szlifierka Bosch" required>
+                    <input type="text" id="tool-name" placeholder="np. Wkrętarka Makita DDF482" required>
                     
                     <label>Notatka / Opis (Opcjonalnie):</label>
-                    <input type="text" id="tool-notes" placeholder="np. Walizka niebieska, Szafa narzędziowa półka 2">
+                    <input type="text" id="tool-notes" placeholder="np. Walizka niebieska">
                     
                     <button type="submit" class="submit-btn" style="background-color: #9b59b6;">Zapisz Narzędzie w Bazie</button>
                 </form>
@@ -250,11 +261,11 @@
             <div class="card">
                 <form id="form-lokalizacja" onsubmit="handleCreateLocation(event)">
                     <label>Nazwa miejsca (Wymagane):</label>
-                    <input type="text" id="loc-name" placeholder="np. Regał A-1, Podłoga Sektor B" required>
+                    <input type="text" id="loc-name" placeholder="np. Regał A-1" required>
                     
                     <label>Kod kreskowy miejsca (Opcjonalnie):</label>
                     <div class="scan-input-group">
-                        <input type="text" id="loc-code" placeholder="Zeskanuj kod kreskowy naklejony na półce...">
+                        <input type="text" id="loc-code" placeholder="Zeskanuj kod kreskowy półki...">
                         <button type="button" class="scan-btn" onclick="startScanning('loc-code')">📷 Skanuj</button>
                     </div>
                     
@@ -315,8 +326,110 @@
             <h2>🚚 Realizacja Wydań z Miejsc</h2>
             <div id="orders-list"></div>
         </div>
+
+        <div id="zapotrzebowanie" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>📋 Zapotrzebowanie na Towary / Materiały</h2>
+            
+            <div class="card">
+                <form id="form-zapotrzebowanie" onsubmit="handleCreateRequisition(event)">
+                    <label>Nazwa artykułu / opis:</label>
+                    <input type="text" id="req-name" placeholder="np. Płyn do szyb" required>
+                    
+                    <div style="display: flex; gap: 12px;">
+                        <div style="flex: 1;">
+                            <label>Ilość:</label>
+                            <input type="number" id="req-qty" min="1" value="1" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label>Jednostka miary:</label>
+                            <input type="text" id="req-unit" placeholder="np. l, szt" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn" style="background-color: #1abc9c;">Dodaj do listy zapotrzebowania</button>
+                </form>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="submit-btn" style="background-color: #34495e; margin-top: 0;" onclick="generateRequisitionPDF()">
+                    🖨️ Generuj i Pobierz PDF
+                </button>
+                <button class="submit-btn" style="background-color: #bdc3c7; color: #333; margin-top: 0; width: auto; white-space: nowrap;" onclick="clearAllRequisitions()">
+                    🗑️ Wyczyść listę
+                </button>
+            </div>
+
+            <div id="pdf-print-area" style="background: white; padding: 10px; border-radius: 8px;">
+                <div id="pdf-only-header" style="display: none; margin-bottom: 25px; font-family: 'Segoe UI', sans-serif;">
+                    <h1 style="font-size: 24px; color: #2c3e50; border-bottom: 3px solid #1abc9c; padding-bottom: 8px;">DOKUMENT ZAPOTRZEBOWANIA</h1>
+                    <p id="pdf-timestamp" style="font-size: 13px; color: #7f8c8d; margin-top: 5px; text-align: right;"></p>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="req-table">
+                        <thead>
+                            <tr>
+                                <th>Nazwa materiału / towaru</th>
+                                <th style="width: 100px;">Ilość</th>
+                                <th style="width: 100px;">Jednostka</th>
+                                <th class="pdf-hide-col" style="width: 80px; text-align: center;">Akcja</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requisitions-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="raporty" class="tab-content">
+            <button class="back-btn" onclick="showDashboard()">← Menu Główne</button>
+            <h2>📊 Historia Ruchu i Raporty Dzienne</h2>
+            
+            <div id="reports-date-list-view">
+                <h3>Wybierz dzień, aby zobaczyć pełny raport:</h3>
+                <div id="reports-days-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-top: 15px;">
+                    </div>
+            </div>
+
+            <div id="report-detail-view" style="display: none; margin-top: 10px;">
+                <button class="back-btn" style="background:#34495e;" onclick="exitReportDetail()">← Powrót do listy dat</button>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="submit-btn" style="background-color: #3498db; margin-top: 0;" onclick="generateReportPDF()">
+                        🖨️ Pobierz Raport Dnia (PDF)
+                    </button>
+                    <button class="submit-btn" style="background-color: #bdc3c7; color:#333; margin-top: 0; width: auto;" onclick="clearSelectedDayLogs()">
+                        🗑️ Wyczyść historię z tego dnia
+                    </button>
+                </div>
+
+                <div id="report-pdf-area" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <div id="report-pdf-header" style="display: none; margin-bottom: 20px; font-family: 'Segoe UI', sans-serif;">
+                        <h1 style="font-size: 22px; color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 8px;">DZIENNY RAPORT OPERACJI MAGAZYNOWYCH</h1>
+                        <h4 id="report-pdf-meta" style="margin-top: 5px; color: #7f8c8d; font-weight: normal;"></h4>
+                    </div>
+                    
+                    <h3 id="report-view-title" style="margin-bottom: 15px; color: #2c3e50;"></h3>
+                    
+                    <div style="overflow-x: auto;">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 90px;">Godzina</th>
+                                    <th style="width: 140px;">Operacja</th>
+                                    <th>Szczegóły zdarzenia na magazynie</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=1.3"></script>
 </body>
 </html>
